@@ -1,31 +1,27 @@
 using System.Collections.Generic;
 using UnityEngine;
 
-public partial class LightSwitchView : MonoBehaviour, IInteractable
+public class LightSwitchView : MonoBehaviour, IInteractable
 {
     [SerializeField] private List<Light> lightsources = new List<Light>();
     private SwitchState currentState;
 
+    public delegate void LightToggledDelegate();
+    public LightToggledDelegate OnLightToggled;
+
     private void OnEnable()
     {
-        EventService.Instance.LightSwitchToggleEvent.AddListener(OnLightsToggled);
-        EventService.Instance.LightsOffByGhostEvent.AddListener(OnLightsOffByGhostEvent);
+        OnLightToggled += HideInstruction;
+        OnLightToggled += PlaySoundEffects;
+        OnLightToggled += ToggleLights;
     }
 
-    private void OnDisable()
-    {
-        EventService.Instance.LightSwitchToggleEvent.RemoveListener(OnLightsToggled);
-        EventService.Instance.LightsOffByGhostEvent.RemoveListener(OnLightsOffByGhostEvent);
-    }
+    private void Start() => currentState = SwitchState.Off;
 
-    private void Start()
-    {
-        currentState = SwitchState.Off;
-    }
     public void Interact()
     {
-        GameService.Instance.GetInstructionView().HideInstruction();
-        EventService.Instance.LightSwitchToggleEvent.InvokeEvent();
+        //Todo - Implement Interaction
+        OnLightToggled?.Invoke();
     }
     private void ToggleLights()
     {
@@ -50,26 +46,21 @@ public partial class LightSwitchView : MonoBehaviour, IInteractable
         }
     }
 
-    private void SetLights(bool lights)
+    private void HideInstruction()
     {
-        if (lights)
-            currentState = SwitchState.On;
-        else
-            currentState = SwitchState.Off;
+        GameService.Instance.GetInstructionView().HideInstruction();
+    }
 
-        foreach (Light lightSource in lightsources)
-        {
-            lightSource.enabled = lights;
-        }
-    }
-    private void OnLightsOffByGhostEvent()
+    private void PlaySoundEffects()
     {
         GameService.Instance.GetSoundView().PlaySoundEffects(SoundType.SwitchSound);
-        SetLights(false);
     }
-    private void OnLightsToggled()
+
+    private void OnDisable()
     {
-        ToggleLights();
-        GameService.Instance.GetSoundView().PlaySoundEffects(SoundType.SwitchSound);
+        OnLightToggled -= HideInstruction;
+        OnLightToggled -= PlaySoundEffects;
+        OnLightToggled -= ToggleLights;
     }
+
 }
